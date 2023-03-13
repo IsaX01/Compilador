@@ -1,0 +1,681 @@
+options{
+    
+    LOOKAHEAD=1;
+   
+}
+
+
+PARSER_BEGIN(Gramatica)
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.Scanner;
+import java.io.Reader;
+
+class Gramatica{
+
+    static int errores = 0;
+    static boolean yaimpreso = false;
+    public static void main(String[] args )  throws FileNotFoundException {
+        
+    System.out.println("Ingresa el nombre del archivo que quieres analizar");
+    Scanner entrada = new Scanner (System.in);
+    String str = entrada.next();
+    
+    str+= ".txt";
+
+    FileReader file = new FileReader(str);
+    BufferedReader buffer = new BufferedReader (file);
+    Gramatica analizador = new Gramatica (buffer);
+        inicio(str,file,buffer,analizador);
+
+    }
+
+
+    static void inicio(String str,FileReader file, BufferedReader buffer,Gramatica analizador)throws FileNotFoundException {
+    
+    
+    try{
+               
+        analizador.Programa();
+        
+
+        if(!yaimpreso){
+        
+        if(errores ==0){
+            System.out.println("Ejecucion finalizada sin errores");
+            yaimpreso=true;
+        }
+
+        else if(errores == 1 ){
+        
+            System.out.println("Ejecucion finalizada con 1 error");
+            yaimpreso=true;
+        }
+ 
+          else {
+            yaimpreso=true;
+            System.out.println("Ejecucion finalizada con " +errores + " errores");
+                }
+}
+        
+    }catch (ParseException e) {
+  
+        Token t;
+              System.out.println(errorData(e.currentToken,e.expectedTokenSequences,e.tokenImage));
+      
+         do {
+       t = getNextToken();
+       if(t.kind== EOF)break;
+ 
+         } while (t!=null && t.kind != EOF  );
+    }
+
+     if(!yaimpreso){
+        
+        if(errores ==0){
+            System.out.println("Ejecucion finalizada sin errores");
+            yaimpreso=true;
+        }
+
+        else if(errores == 1 ){
+        
+            System.out.println("Ejecucion finalizada con 1 error");
+            yaimpreso=true;
+        }
+ 
+          else {
+            yaimpreso=true;
+            System.out.println("Ejecucion finalizada con " +errores + " errores");
+                }
+}
+
+
+}
+
+
+  
+
+static String errorData(Token currentTokenVal,
+                        int[][] expectedTokenSequencesVal,
+                        String[] tokenImageVal){
+
+    String eol = System.getProperty("line.separator", "\n");
+    Token currentToken = currentTokenVal;
+    int [][] expectedTokenSequences = expectedTokenSequencesVal;
+    String[] tokenImage = tokenImageVal;
+    StringBuffer expected = new StringBuffer();
+    int maxSize = 0;
+    for (int i = 0; i < expectedTokenSequences.length; i++) {
+      if (maxSize < expectedTokenSequences[i].length) {
+        maxSize = expectedTokenSequences[i].length;
+      }
+      for (int j = 0; j < expectedTokenSequences[i].length; j++) {
+        expected.append(tokenImage[expectedTokenSequences[i][j]]).append(' ');
+      }
+      if (expectedTokenSequences[i][expectedTokenSequences[i].length - 1] != 0) {
+        expected.append("...");
+      }
+      expected.append(eol).append("    ");
+    }
+    
+    String str0 = "";
+    
+    if(currentToken.next.kind == 0) return str0;
+
+    
+    
+    String retval = "";
+
+    if(currentToken.next.kind == 56){
+        errores++;
+        retval+="\n\nError Lexico, ";
+        retval += "Se ha encontrado \"";
+        Token tok = currentToken.next;
+        for (int i = 0; i < maxSize; i++) {
+        if (i != 0) retval += " ";
+        if (tok.kind == 0) {
+            retval += tokenImage[0];
+            break;
+        }
+        //retval += " " + tokenImage[tok.kind];
+        //retval += " \"";
+        retval += add_escapes(tok.image);
+        retval += "\"";
+        tok = tok.next; 
+        }
+    retval += " en la linea " + currentToken.next.beginLine + ", columna " + currentToken.next.beginColumn;
+    retval += "." + eol;
+    
+    retval += "El token no es reconocido por el lenguaje";
+    return retval;
+        
+         
+    }else{
+    errores++;
+    retval+="\n\nError Sintactico, ";
+    retval += "Se ha encontrado \"";
+    Token tok = currentToken.next;
+    for (int i = 0; i < maxSize; i++) {
+      if (i != 0) retval += " ";
+      if (tok.kind == 0) {
+        retval += tokenImage[0];
+        break;
+      }
+      retval += " " + tokenImage[tok.kind];
+      retval += " \"";
+      retval += add_escapes(tok.image);
+      retval += " \"";
+      tok = tok.next; 
+    }
+    retval += "\" en la linea " + currentToken.next.beginLine + ", columna " + currentToken.next.beginColumn;
+    retval += "." + eol;
+    if (expectedTokenSequences.length == 1) {
+      retval += "Se esperaba:" + eol + "    ";
+    } else {
+      retval += "Se esperaba:" + eol + "    ";
+    }
+    retval += expected.toString();
+    return retval;
+    }
+   
+  }
+
+
+    static String add_escapes(String str) {
+      StringBuffer retval = new StringBuffer();
+      char ch;
+      for (int i = 0; i < str.length(); i++) {
+        switch (str.charAt(i))
+        {
+           case 0 :
+              continue;
+           case '\b':
+              retval.append("\\b");
+              continue;
+           case '\t':
+              retval.append("\\t");
+              continue;
+           case '\n':
+              retval.append("\\n");
+              continue;
+           case '\f':
+              retval.append("\\f");
+              continue;
+           case '\r':
+              retval.append("\\r");
+              continue;
+           case '\"':
+              retval.append("\\\"");
+              continue;
+           case '\'':
+              retval.append("\\\'");
+              continue;
+           case '\\':
+              retval.append("\\\\");
+              continue;
+           default:
+              if ((ch = str.charAt(i)) < 0x20 || ch > 0x7e) {
+                 String s = "0000" + Integer.toString(ch, 16);
+                 retval.append("\\u" + s.substring(s.length() - 4, s.length()));
+              } else {
+                 retval.append(ch);
+              }
+              continue;
+        }
+      }
+      return retval.toString();
+   }
+
+
+}
+
+
+
+PARSER_END (Gramatica)
+
+
+
+SKIP : 
+{
+    " " | "\n" | "\r" | "\r\n" | "\t" 
+}
+
+//OPERADORES ARITMETICOS
+TOKEN : 
+{
+    <IGUAL : "=">  {System.out.println("(OP_Asignacion ---> " +  image + ")");}        //1
+    |<MAS : "+">        {System.out.println("(OP_Mas ---> " +  image + ")");}        //2
+    |<MENOS : "-">      {System.out.println("(OP_Menos ---> " +  image + ")");}        //3
+    |<MULTIPLICAR : "*">{System.out.println("(OP_Multiplicar ---> " +  image + ")");}        //4 
+    |<DIVIDIR : "/">    {System.out.println("(OP_Division --->" +  image + ")");}        //5
+    |<MODULO : "%">        {System.out.println("(OP_Modulo ---> " +  image + ")");}     //8
+    |<SUMAIGUAL : "+=">    {System.out.println("(OP_SumaAsignacion ---> " +  image + ")");}     //9
+    |<RESTAIGUAL : "-=">   {System.out.println("(OP_RestaAsignacion ---> " +  image + ")");}     //10
+    |<MULTIGUAL : "*=">    {System.out.println("(OP_MultiplicacionAsignacion ---> " +  image + ")");}     //11
+    |<DIVIDIRIGUAL : "/="> {System.out.println("(OP_DividirAsignacion ---> " +  image + ")");}     //12
+    |<MODULOIGUAL : "%=">  {System.out.println("(OP_ModuloAsignacion ---> " +  image + ")");}     //13
+}
+
+//PALABRAS RESERVADAS
+TOKEN : 
+{
+     <MAIN : "principal">    {System.out.println("(PR_MAIN ---> " +  image + ")");}  //15
+    | <WRITE : "imprimir">    {System.out.println("(PR_IMPRIMIR ---> " +  image + ")");}  //16
+    | <READ : "leer">         {System.out.println("(PR_LEER ---> " +  image + ")");}  //17
+    | <IF : "cuando">         {System.out.println("(PR_IF ---> " +  image + ")");}  //18
+    | <ELSE : "sino">           {System.out.println("(PR_ELSE ---> " +  image + ")");}//19
+    | <BREAK : "romper">        {System.out.println("(PR_BREAK ---> " +  image + ")");}//22
+    | <FOR : "ciclo_for">       {System.out.println("(PR_FOR ---> " +  image + ")");}//23
+    | <WHILE : "ciclo_mientras">{System.out.println("(PR_WHILE ---> " +  image + ")");}//24
+    |<ASIGN : "asignacion"> {System.out.println("(PR_ASIGN ---> " +  image + ")");}//25
+}
+
+//CARACTERES ESPECIALES
+TOKEN :
+{
+    <PARI : "(">                {System.out.println("(CE_PARENTESISIZQ ---> \"" +  image + "\")");}//25
+    | <PARD : ")">              {System.out.println("(CE_PARENTESISDER ---> \"" +  image + "\")");}//26
+    | <LLAVEI : "{">            {System.out.println("(CE_LLAVEIZQ ---> \"" +  image + "\")");}//27
+    | <LLAVED : "}">            {System.out.println("(CE_LLAVEDER ---> \"" +  image + "\")");}//28
+    | <DELIMITER : ";">         {System.out.println("(CE_DELIMITADOR ---> \"" +  image + "\")");}//29
+    | <COMA : ",">              {System.out.println("(CE_COMA ---> \"" +  image + "\")");}//30
+    | <COMILLA : "\"">          {System.out.println("(CE_COMILLA ---> \"" +  image + "\")");}//31
+    | <COMENTARIO : "#">        {System.out.println("(CE_COMENTARIO ---> \"" +  image + "\")");}//32
+}
+
+
+//OPERADORES LOGICOS
+TOKEN : 
+{
+    <IGUALDAD : "==">           {System.out.println("(OPL_IGUALDAD ---> " +  image + ")");}//34
+    | <MAYOR : ">">             {System.out.println("(OPL_MAYORQUE ---> " +  image + ")");}//35
+    | <MAYORI : ">=">           {System.out.println("(OPL_MAYORIGUAL ---> " +  image + ")");}//36
+    | <MENOR : "<">             {System.out.println("(OPL_MENORQUE ---> " +  image + ")");}//37
+    | <MENORI : "<=">           {System.out.println("(OPL_MENORIGUAL ---> " +  image + ")");}//38
+    | <DIFERENCIA : "!=">       {System.out.println("(OPL_DIFERENCIA ---> " +  image + ")");}//39
+    | <NEGACION : "!">          {System.out.println("(OPL_NEGACION ---> " +  image + ")");}//40
+    | <AND : "&&">              {System.out.println("(OPL_AND ---> " +  image + ")");}//41
+    | <OR : "||">               {System.out.println("(OPL_OR ---> " +  image + ")");}//42
+}
+
+
+    //VALORES PREDETERMINADOS
+    TOKEN : 
+    {
+        <TRUE : "verdadero">        {System.out.println("(VP_TRUE ---> " +  image + ")");}//43
+        |<FALSE : "falso">           {System.out.println("(VP_FALSE ---> " +  image + ")");}//44
+        |<NULL  : "nulo">            {System.out.println("(VP_NULL ---> " +  image + ")");}//45
+    }
+
+
+
+
+//TIPOS DE DATOS
+TOKEN :
+{
+    <INT : "entero">            {System.out.println("(TD_INT ---> " +  image + ")");}//46
+    | <FLOAT : "flotante">      {System.out.println("(TD_FLOAT ---> " +  image + ")");}//47
+    | <STRING : "cadena">       {System.out.println("(TD_STRING ---> " +  image + ")");}//48
+    | <BOOL : "bool">           {System.out.println("(TD_BOOLEAN ---> " +  image + ")");}//49
+    | <CARACTER : "caracter">   {System.out.println("(TD_CHAR ---> " +  image + ")");}    //50
+    | <NUMERO : (["0" - "9"])+>         {System.out.println("(NUMBER ---> " +  image + ")");}//51
+    | <IDENTIFICADOR :  ["a" - "z", "A" - "Z"](["a" - "z", "A" - "Z", "0" - "9", "_"])*>   {System.out.println("(IDENTIFICADOR ---> " +  image + ")");} //52
+    | <DECIMAL : (["0" - "9"])+["."](["0" - "9"])+>                 {System.out.println("(DECIMAL ---> " +  image + ")");}//53
+    | <CADENA : "\""(~["\""])*"\"" > {System.out.println("(STRING ---> " +  image + ")");} //54
+    | <CHAR : "\'"(~["\""])"\'" >     {System.out.println("(CHAR ---> " +  image + ")");} //55
+       | <ERRORES : ~[]>   {System.out.println("(ERROR ---> " +  image + ")");} //58
+    
+}
+
+
+
+
+
+//----------------------------------------FIN DECLARACION TOKENS -------------------------------------------------------
+//----------------------------------------INICIO DECLARACION GRAMATICAS -------------------------------------------------------
+
+
+    
+//----------------------------------------PROGRAMA PRINCIPAL -------------------------------------------------------
+    void Programa() :{}
+    {
+        
+            <MAIN><PARI><PARD><LLAVEI> Bloque() <LLAVED> <EOF>
+        
+    }
+
+
+    
+    
+
+
+
+
+//----------------------------------------BLOQUE DE SENTENCIAS -------------------------------------------------------
+    void Bloque() : {}
+    {
+       
+        (
+            sentencia()
+        )*  
+        
+        
+    }
+
+
+
+//----------------------------------------SENTENCIAS -------------------------------------------------------
+    void sentencia() : {}
+    {
+    
+        try{
+        imprimir()
+        |errorLexico()
+        |LOOKAHEAD(2)declaraciones()
+        |LOOKAHEAD(1)asignaciones()   //Asignacion IDENTIFICADOR = (VALOR | IDENFITICADOR) DELIMITER
+        |LOOKAHEAD(2)incrementoDecremento()
+        | condicionalIf()
+        | LOOKAHEAD(2)cicloFor()
+        | (<BREAK>delimiter())
+        | cicloWhile()
+        | leer()
+        | LOOKAHEAD(2)declaracionAritmetica()
+        | LOOKAHEAD(2)asignacionAritmetica()        
+       }catch (ParseException e) {
+        Token t;
+        System.out.println(errorData(e.currentToken,e.expectedTokenSequences,e.tokenImage));
+        System.out.println("");
+        
+         do {      
+       t = getNextToken();
+     
+       
+         } while (t!=null && t.kind != EOF );
+    }
+
+    }
+
+//---------------------------------------- IMPRIMIR -------------------------------------------------------
+    void imprimir() :{}
+    
+   {
+        //PALABRA RESERVADA       
+        try{
+         <WRITE><PARI>(<IDENTIFICADOR>|<NUMERO>|<DECIMAL>|<TRUE>|<FALSE>|<NULL>|<CADENA>|<CHAR>)<PARD> delimiter()
+        }catch (ParseException e) {
+  
+        Token t; 
+        System.out.println(errorData(e.currentToken,e.expectedTokenSequences,e.tokenImage));
+        System.out.println("");
+         do {
+       t = getNextToken();
+     
+      
+         } while (t!=null && t.kind != EOF  );
+    }
+     
+}
+
+
+
+//---------------------------------------- DECLARACIONES -------------------------------------------------------
+    void declaraciones() : 
+    {}
+    {   
+        //TIPO DE DATO
+        (<INT>|<CARACTER>|<FLOAT>|<STRING>|<BOOL>)
+        
+        //IDENTIFICADOR
+        <IDENTIFICADOR>
+        
+        //SIMBOLO =
+        ((<IGUAL>
+
+        //VALOR
+        (<IDENTIFICADOR>|<NUMERO>|<DECIMAL>|<TRUE>|<FALSE>|<NULL>|<CADENA>|<CHAR>))
+
+        |
+        //Lo mismo pero con las comas
+        (<COMA><IDENTIFICADOR><IGUAL>
+        (<IDENTIFICADOR>|<NUMERO>|<DECIMAL>|<TRUE>|<FALSE>|<NULL>|<CADENA>|<CHAR>)))*
+
+        //DELIMITADOR;
+        delimiter()
+    }
+
+
+//---------------------------------------- DECLARACIONES CON OPERACIONES ARITMETICAS -------------------------------------------------------
+    void declaracionAritmetica() : {}
+    {
+
+        //TIPO DE DATO
+        (<INT>|<CARACTER>|<FLOAT>|<STRING>|<BOOL>)
+        
+        //IDENTIFICADOR
+        <IDENTIFICADOR>
+        
+        //SIMBOLO =
+        ((<IGUAL>operacion()delimiter()))
+    }
+
+//----------------------------------------OPERACIONES ARITMETICAS-------------------------------------------------------
+    void operacion() : {}
+    {
+       ( <NUMERO> | <IDENTIFICADOR> | <DECIMAL>)((<MAS>|<MENOS>|<MULTIPLICAR>|<DIVIDIR>|<MODULO>)(<NUMERO>|<IDENTIFICADOR>|<DECIMAL>))*
+    }
+
+
+//---------------------------------------- ASIGNACIONES CON OPERACIONES ARITMETICAS -------------------------------------------------------
+    void asignacionAritmetica() : {}
+    {
+        <IDENTIFICADOR>(<IGUAL>|<SUMAIGUAL>|<RESTAIGUAL>|<MULTIGUAL>|<DIVIDIRIGUAL>|<MODULOIGUAL>)operacion()delimiter()
+    }
+
+
+//----------------------------------------GRAMATICAS INCREMENTO O DECREMENTO -------------------------------------------------------
+    void incrementoDecremento() : {}
+    {
+    try{
+        //OPERANDO
+        (<IDENTIFICADOR>)
+
+        //OPERADOR
+        (<MAS><MAS>|<MENOS><MENOS>)
+
+        //DELIMITADOR
+        delimiter()
+        }catch(ParseException e){
+            Token t;
+            System.out.println(errorData(e.currentToken,e.expectedTokenSequences,e.tokenImage));
+            System.out.println("");
+            do {
+                t = getNextToken();
+            } while (t.kind!=IDENTIFICADOR && t.kind!=MAS && t.kind!=MENOS 
+            && t.kind!=DELIMITER && t.kind!=NULL && t.kind != EOF  );
+        }
+    }
+
+//----------------------------------------ASIGNACIONES NORMALES -------------------------------------------------------
+    void asignaciones() : {}
+    {
+        //PALABRA RESERVADA       
+        try{
+         <ASIGN> <IDENTIFICADOR> <IGUAL> 
+
+
+        (<IDENTIFICADOR>|<NUMERO>|<DECIMAL>|<TRUE>|<FALSE>|<NULL>|<CADENA>|<CHAR>) delimiter()
+        
+        }catch (ParseException e) {
+       
+        Token t;
+        System.out.println(errorData(e.currentToken,e.expectedTokenSequences,e.tokenImage));
+        System.out.println("");
+         do {
+       t = getNextToken();
+         } while ( t!=null && t.kind != EOF);
+    }
+     
+}   
+
+
+//----------------------------------------COMPARACION LOGICA -------------------------------------------------------
+    void comparacionLogica() : {}
+    {
+
+        try{
+        //PRIMER TERMINO DEL IF
+        ((<NEGACION>(<IDENTIFICADOR>|<NUMERO>|<DECIMAL>|<CADENA>|<CHAR>))|<IDENTIFICADOR>|<NUMERO>|<DECIMAL>|<CADENA>|<CHAR>)
+
+        //OPERADOR
+        ((<IGUALDAD> | <MAYOR> | <MAYORI> | <MENOR> | <MENORI>
+        | <DIFERENCIA> | <AND> | <OR>
+        )
+
+        //SEGUNDO TERMINO
+        ((<NEGACION>(<IDENTIFICADOR>|<NUMERO>|<DECIMAL>|<CADENA>|<CHAR>))|<IDENTIFICADOR>|<NUMERO>|<DECIMAL>|<CADENA>|<CHAR>))*
+        }catch (ParseException e) {
+  
+        Token t; 
+        System.out.println(errorData(e.currentToken,e.expectedTokenSequences,e.tokenImage));
+        System.out.println("");
+         do {
+       t = getNextToken();
+        
+        
+         } while (t!=null && t.kind != EOF  );
+    }
+
+}
+
+
+//----------------------------------------ESTRUCTURA CONDICIONAL IF -------------------------------------------------------
+    void condicionalIf() :    {}
+    {
+
+        try{
+        <IF><PARI>comparacionLogica()<PARD><LLAVEI>(sentencia())*<LLAVED>
+
+        //ELSEIF
+        (LOOKAHEAD(2)(<ELSE><IF><PARI>comparacionLogica()<PARD><LLAVEI>(sentencia())*<LLAVED>))*
+        (LOOKAHEAD(2)(<ELSE><LLAVEI>(sentencia())*<LLAVED>))*
+        }catch (ParseException e) {
+  
+        Token t;    
+        System.out.println(errorData(e.currentToken,e.expectedTokenSequences,e.tokenImage));
+        System.out.println("");
+         do {
+        
+       t = getNextToken();
+        
+         } while (t!=null && t.kind != EOF  );
+    }
+        
+
+}
+
+//---------------------------------------- ESTRUCTURA CICLO FOR -------------------------------------------------------
+    void cicloFor() : {}
+    {
+      
+        try{
+            <FOR><PARI><IDENTIFICADOR><IGUAL><NUMERO>delimiter()<IDENTIFICADOR>
+    
+            //OPERADOR LOGICO
+            (<MENOR>|<MAYOR>|<MENORI>|<MAYORI>|<IGUALDAD>|<DIFERENCIA>)(<NUMERO>|<IDENTIFICADOR>)delimiter()
+
+            //PASO
+            <IDENTIFICADOR>(<MAS><MAS>|<MENOS><MENOS>)
+            <PARD><LLAVEI>(sentencia())*<LLAVED>
+        }catch (ParseException e) {
+  
+        Token t;    
+        System.out.println(errorData(e.currentToken,e.expectedTokenSequences,e.tokenImage));
+        System.out.println("");
+         do {
+        
+       t = getNextToken();
+        
+         } while (t!=null && t.kind != EOF  );
+    }
+    }
+
+
+//----------------------------------------ESTRUCTURA CICLO WHILE -------------------------------------------------------
+    void cicloWhile() : {}
+    {
+        <WHILE><PARI>comparacionLogica()<PARD><LLAVEI>(sentencia())*<LLAVED>
+    }
+
+//----------------------------------------LEER DATOS DESDE TECLADO -------------------------------------------------------
+    void leer() : {}
+    {
+        <READ><PARI><IDENTIFICADOR><PARD>delimiter()
+    
+}
+
+     void delimiter() :
+    {}
+    {
+    try 
+    {
+    <DELIMITER> 
+    } catch (ParseException e) {        
+        Token t;
+        System.out.println(errorData(e.currentToken,e.expectedTokenSequences,e.tokenImage));
+        System.out.println("");
+         do {
+       t = getNextToken();
+         } while (t.kind != DELIMITER && t!=null && t.kind != EOF );
+    }
+    }
+
+
+    void eof() :
+    {}
+    {
+    try 
+    {
+    <EOF> 
+    } catch (ParseException e) {        
+        Token t;
+        System.out.println(errorData(e.currentToken,e.expectedTokenSequences,e.tokenImage));
+        System.out.println("");
+         do {
+       t = getNextToken();
+         } while ( t!=null );
+    }
+    }
+
+
+    void errorLexico() :
+    {}
+    {
+
+    <ERRORES> {
+               error();
+            }
+
+   
+    }
+    
+    JAVACODE
+
+    
+    public void error(){
+    
+    errores++;
+    
+    System.out.println("\nSe ha encontrado un error lexico \"" + token.image+"\" en la linea "+token.beginLine
+    +" columna "+token.beginColumn+"\n");
+    }
+
+    
+
+    
+
+   
+
+   
+ 
